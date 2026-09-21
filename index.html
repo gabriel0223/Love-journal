@@ -1,0 +1,926 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Our Love Journal</title>
+
+<!-- ==========================================================
+     STEP 1 OF SETUP — paste your two Supabase values below.
+     Supabase → Project Settings → API
+     ========================================================== -->
+<script>
+  var SUPABASE_URL      = "PASTE_YOUR_PROJECT_URL_HERE";
+  var SUPABASE_ANON_KEY = "PASTE_YOUR_ANON_PUBLIC_KEY_HERE";
+</script>
+<!-- ========================================================== -->
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Zen+Maru+Gothic:wght@400;700;900&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  --paper:#FFF3E0;
+  --card:#FFFFFF;
+  --ink:#15131B;
+  --ink-soft:#514C5E;
+  --ink-faint:#8A8395;
+  --line:#15131B;
+  --shadow-c:#15131B;
+
+  --blue:#2947DD;   --blue-soft:#DEE3FC;
+  --orange:#E75F12; --orange-soft:#FCE4D4;
+  --rose:#D92459;   --rose-soft:#FBDCE5;
+  --teal:#07817A;   --teal-soft:#D5EEEC;
+  --violet:#6E32C8; --violet-soft:#E8DDFA;
+  --mustard:#B07900;--mustard-soft:#F8E9C4;
+  --slate:#4C5566;  --slate-soft:#E0E4EA;
+
+  --gold:#F0AF17;   --gold-soft:#FFF0C9;
+  --on-color:#FFFFFF;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#16141D;
+    --card:#221F2C;
+    --ink:#FFF3E0;
+    --ink-soft:#B3ACBF;
+    --ink-faint:#7C7589;
+    --line:#514A60;
+    --shadow-c:#000000;
+
+    --blue:#8397FF;   --blue-soft:#232948;
+    --orange:#FF9350; --orange-soft:#3A2519;
+    --rose:#FF6E96;   --rose-soft:#3C1E2A;
+    --teal:#3FC8BC;   --teal-soft:#123230;
+    --violet:#AF8BF5; --violet-soft:#2A2040;
+    --mustard:#E0B33F;--mustard-soft:#33290F;
+    --slate:#9AA5B8;  --slate-soft:#262B35;
+
+    --gold:#FFC94D;   --gold-soft:#332711;
+    --on-color:#16141D;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#16141D; --card:#221F2C; --ink:#FFF3E0; --ink-soft:#B3ACBF; --ink-faint:#7C7589;
+  --line:#514A60; --shadow-c:#000000;
+  --blue:#8397FF; --blue-soft:#232948; --orange:#FF9350; --orange-soft:#3A2519;
+  --rose:#FF6E96; --rose-soft:#3C1E2A; --teal:#3FC8BC; --teal-soft:#123230;
+  --violet:#AF8BF5; --violet-soft:#2A2040; --mustard:#E0B33F; --mustard-soft:#33290F;
+  --slate:#9AA5B8; --slate-soft:#262B35; --gold:#FFC94D; --gold-soft:#332711;
+  --on-color:#16141D;
+}
+
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Helvetica Neue",Arial,sans-serif;
+  font-size:15px; line-height:1.6; -webkit-text-size-adjust:100%;
+  padding-top:env(safe-area-inset-top,0px);
+}
+img{max-width:100%;}
+[hidden]{display:none !important;}
+.wrap{max-width:940px; margin:0 auto; padding-inline:18px; padding-block:24px 110px;}
+
+/* category color assignment */
+.c-activities{--c:var(--blue);    --c-soft:var(--blue-soft);}
+.c-food      {--c:var(--orange);  --c-soft:var(--orange-soft);}
+.c-love      {--c:var(--rose);    --c-soft:var(--rose-soft);}
+.c-travel    {--c:var(--teal);    --c-soft:var(--teal-soft);}
+.c-adventure {--c:var(--violet);  --c-soft:var(--violet-soft);}
+.c-silly     {--c:var(--mustard); --c-soft:var(--mustard-soft);}
+.c-someday   {--c:var(--slate);   --c-soft:var(--slate-soft);}
+
+/* ---------- header ---------- */
+.route{display:flex; align-items:center; gap:9px; font-family:"IBM Plex Mono",monospace;
+  font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft);}
+.route .ln{flex:1; height:2px; background:var(--line); max-width:70px;}
+h1{
+  font-family:"Bricolage Grotesque","Zen Maru Gothic",sans-serif; font-weight:800;
+  font-size:clamp(34px,9vw,54px); line-height:.98; letter-spacing:-.03em;
+  margin:12px 0 10px; text-wrap:balance;
+}
+.lede{margin:0; color:var(--ink-soft); max-width:44ch; font-size:14.5px;}
+
+.stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:22px 0 4px;}
+.stat{
+  border:2px solid var(--line); border-radius:7px; background:var(--c-soft);
+  box-shadow:3px 3px 0 var(--shadow-c); padding:11px 12px;
+}
+.stat b{display:block; font-family:"Bricolage Grotesque",sans-serif; font-weight:800;
+  font-size:26px; line-height:1.05; color:var(--c); font-variant-numeric:tabular-nums;}
+.stat span{font-family:"IBM Plex Mono",monospace; font-size:9.5px; font-weight:600;
+  letter-spacing:.11em; text-transform:uppercase; color:var(--ink-soft); display:block; margin-top:2px;}
+
+.whobar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:18px;
+  padding-top:14px; border-top:2px dashed var(--line);}
+.whobar .me{font-size:13.5px; color:var(--ink-soft);}
+.whobar .me b{color:var(--ink);}
+.linkbtn{appearance:none; background:none; border:0; padding:0; cursor:pointer;
+  font-family:inherit; font-size:13px; color:var(--ink-soft); text-decoration:underline; text-underline-offset:3px;}
+.linkbtn:hover{color:var(--ink);}
+
+/* ---------- tabs + filters ---------- */
+.tabs{display:flex; margin:24px 0 14px; border:2px solid var(--line); border-radius:7px;
+  box-shadow:3px 3px 0 var(--shadow-c); overflow:hidden; background:var(--card);}
+.tab{
+  flex:1; appearance:none; border:0; border-right:2px solid var(--line); background:transparent;
+  padding:10px 6px; cursor:pointer; font-family:"Zen Maru Gothic",sans-serif; font-weight:700;
+  font-size:14px; color:var(--ink-soft);
+}
+.tab:last-child{border-right:0;}
+.tab[aria-selected="true"]{background:var(--ink); color:var(--paper);}
+.filters{display:flex; gap:7px; flex-wrap:wrap; align-items:center; margin-bottom:20px;}
+.chip{
+  appearance:none; cursor:pointer; font-family:inherit; font-weight:700; font-size:12.5px;
+  padding:5px 11px; border-radius:999px; border:2px solid var(--line);
+  background:var(--card); color:var(--ink);
+}
+.chip[aria-pressed="true"]{background:var(--ink); color:var(--paper);}
+select.mini{
+  font-family:inherit; font-weight:700; font-size:12.5px; color:var(--ink); background:var(--card);
+  border:2px solid var(--line); border-radius:999px; padding:5px 10px; cursor:pointer;
+}
+:focus-visible{outline:3px solid var(--violet); outline-offset:2px;}
+
+/* ---------- cards ---------- */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px;}
+.entry{
+  position:relative; text-align:left; font-family:inherit; color:inherit; cursor:pointer;
+  background:var(--card); border:2px solid var(--line); border-radius:8px; padding:0;
+  box-shadow:4px 4px 0 var(--shadow-c); overflow:hidden;
+  display:flex; flex-direction:column;
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.entry:hover{transform:translate(-2px,-2px); box-shadow:6px 6px 0 var(--shadow-c);}
+.entry:active{transform:translate(1px,1px); box-shadow:2px 2px 0 var(--shadow-c);}
+.entry .topbar{height:8px; background:var(--c);}
+.entry .cover{width:100%; height:150px; object-fit:cover; display:block; border-bottom:2px solid var(--line); background:var(--c-soft);}
+.entry .body{padding:13px 14px 13px; display:flex; flex-direction:column; gap:9px; flex:1;}
+.entry.done .body{background:var(--gold-soft);}
+.tagline{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+.cat{
+  font-family:"IBM Plex Mono",monospace; font-size:9.5px; font-weight:600; letter-spacing:.11em;
+  text-transform:uppercase; background:var(--c); color:var(--on-color);
+  padding:3px 8px; border-radius:999px;
+}
+.flag{font-size:18px; line-height:1;}
+.entry h3{
+  font-family:"Zen Maru Gothic",sans-serif; font-weight:900; font-size:17.5px; line-height:1.3;
+  margin:0; letter-spacing:-.01em; word-break:break-word;
+}
+.entry p{margin:0; font-size:13px; color:var(--ink-soft);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.foot{margin-top:auto; padding-top:6px; font-size:12px; color:var(--ink-faint);
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+.stamp{
+  display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:10px; font-weight:600;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--rose);
+  border:2px dashed var(--rose); border-radius:5px; padding:2px 8px; transform:rotate(-3deg);
+}
+.morephotos{font-family:"IBM Plex Mono",monospace; font-size:10px; font-weight:600; color:var(--ink-faint);}
+
+/* ---------- empty ---------- */
+.empty{border:3px dashed var(--line); border-radius:10px; padding:32px 22px; text-align:center;}
+.empty h3{font-family:"Bricolage Grotesque",sans-serif; font-weight:800; font-size:22px; margin:0 0 8px;}
+.empty p{color:var(--ink-soft); margin:0 auto 16px; max-width:36ch; font-size:14px;}
+
+/* ---------- buttons ---------- */
+.btn{
+  appearance:none; cursor:pointer; font-family:"Zen Maru Gothic",sans-serif; font-weight:700; font-size:14.5px;
+  border:2px solid var(--line); border-radius:7px; padding:10px 18px;
+  background:var(--card); color:var(--ink); box-shadow:3px 3px 0 var(--shadow-c);
+  transition:transform .1s ease, box-shadow .1s ease;
+}
+.btn:active{transform:translate(2px,2px); box-shadow:1px 1px 0 var(--shadow-c);}
+.btn.primary{background:var(--rose); color:#fff;}
+.btn.gold{background:var(--gold); color:#15131B;}
+.btn.flat{box-shadow:none; border-color:transparent; background:transparent; font-weight:700; color:var(--rose); padding-inline:4px;}
+.btn[disabled]{opacity:.55; cursor:not-allowed;}
+.fab{
+  position:fixed; left:50%; transform:translateX(-50%); z-index:40;
+  bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  padding:13px 26px; border-radius:999px; font-size:16px; box-shadow:4px 4px 0 var(--shadow-c);
+}
+.fab:active{transform:translateX(-50%) translate(2px,2px); box-shadow:2px 2px 0 var(--shadow-c);}
+
+/* ---------- sheets ---------- */
+.veil{position:fixed; inset:0; z-index:60; background:rgba(12,10,18,.6);
+  display:flex; align-items:flex-end; justify-content:center; overflow-y:auto; padding:0;}
+@media (min-width:640px){ .veil{align-items:center; padding:24px;} }
+.sheet{
+  width:100%; max-width:560px; background:var(--paper); color:var(--ink);
+  border:2px solid var(--line); border-radius:12px 12px 0 0; box-shadow:0 -6px 0 var(--shadow-c);
+  padding:22px 20px calc(26px + env(safe-area-inset-bottom,0px)); margin-top:46px;
+}
+@media (min-width:640px){ .sheet{border-radius:10px; box-shadow:6px 6px 0 var(--shadow-c); margin:0;} }
+.sheet h2{font-family:"Bricolage Grotesque","Zen Maru Gothic",sans-serif; font-weight:800;
+  font-size:26px; line-height:1.1; margin:0 0 4px; letter-spacing:-.02em;}
+.sheet .sub{font-family:"IBM Plex Mono",monospace; font-size:10px; font-weight:600;
+  letter-spacing:.13em; text-transform:uppercase; color:var(--ink-faint); margin:0 0 18px;}
+.sheet h2.jp{font-family:"Zen Maru Gothic",sans-serif; font-weight:900;}
+label.f{display:block; margin-bottom:15px;}
+label.f > span{display:block; font-family:"IBM Plex Mono",monospace; font-size:10px; font-weight:600;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:6px;}
+input[type=text],input[type=email],input[type=password],input[type=date],textarea,select.full{
+  width:100%; font-family:inherit; font-size:16px; color:var(--ink); background:var(--card);
+  border:2px solid var(--line); border-radius:6px; padding:10px 12px;
+}
+textarea{resize:vertical; min-height:80px; line-height:1.55;}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+@media (max-width:430px){ .row2{grid-template-columns:1fr;} }
+.acts{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:4px;}
+.acts .spacer{flex:1;}
+.body-note{white-space:pre-wrap; color:var(--ink-soft); margin:0 0 16px; font-size:15px;}
+.memory-note{
+  white-space:pre-wrap; margin:0 0 18px; font-size:15px; color:var(--ink);
+  background:var(--gold-soft); border:2px solid var(--line); border-radius:8px; padding:12px 14px;
+}
+.facts{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px; font-size:12.5px; color:var(--ink-faint);}
+.gallery{display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:9px; margin-bottom:18px;}
+.gallery figure{margin:0; position:relative;}
+.gallery img{width:100%; aspect-ratio:1/1; max-width:100%; object-fit:cover;
+  border:2px solid var(--line); border-radius:6px; background:var(--c-soft); display:block;}
+.gallery button{position:absolute; top:-7px; right:-7px; width:24px; height:24px; border-radius:50%;
+  border:2px solid var(--line); background:var(--paper); color:var(--ink); cursor:pointer;
+  font-size:13px; line-height:1; font-weight:700;}
+.note{font-size:13px; color:var(--ink-soft); margin:10px 0 0;}
+.err{font-size:13.5px; color:#fff; background:var(--rose); border:2px solid var(--line);
+  border-radius:6px; padding:9px 12px; margin:12px 0 0;}
+.filepick{display:block; margin-top:6px; font-size:14px;}
+
+/* ---------- gate screens ---------- */
+.gate{min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px 18px;}
+.gatecard{width:100%; max-width:420px; background:var(--card); border:2px solid var(--line);
+  border-radius:12px; box-shadow:6px 6px 0 var(--shadow-c); padding:26px 22px;}
+.gatecard h1{font-size:32px; margin:6px 0 8px;}
+.gatecard p{color:var(--ink-soft); font-size:14px;}
+.gatecard ol{color:var(--ink-soft); font-size:14px; padding-left:20px;}
+.gatecard code{font-family:"IBM Plex Mono",monospace; font-size:12.5px; background:var(--blue-soft);
+  padding:1px 5px; border-radius:4px; word-break:break-all;}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;}}
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate" hidden><div class="gatecard" id="gatecard"></div></div>
+
+<div id="app" hidden>
+  <div class="wrap">
+    <header>
+      <div class="route"><span>🇧🇷 Brazil</span><i class="ln"></i><span>Japan 🇯🇵</span></div>
+      <h1>Our Love Journal</h1>
+      <p class="lede">Everything we still want to do together — and every one we've already done, with the photos to prove it.</p>
+      <div class="stats" id="stats"></div>
+      <div class="whobar">
+        <span class="me" id="me-label"></span>
+        <button class="linkbtn" id="edit-me">change</button>
+        <span class="spacer" style="flex:1"></span>
+        <button class="linkbtn" id="signout">sign out</button>
+      </div>
+    </header>
+
+    <div class="tabs" role="tablist" aria-label="View">
+      <button class="tab" role="tab" id="tab-open" aria-selected="true">Dreams</button>
+      <button class="tab" role="tab" id="tab-done" aria-selected="false">Memories</button>
+      <button class="tab" role="tab" id="tab-all" aria-selected="false">Everything</button>
+    </div>
+
+    <div class="filters">
+      <button class="chip" data-place="all" aria-pressed="true">Everywhere</button>
+      <button class="chip" data-place="br" aria-pressed="false">🇧🇷 Brazil</button>
+      <button class="chip" data-place="jp" aria-pressed="false">🇯🇵 Japan</button>
+      <button class="chip" data-place="any" aria-pressed="false">💫 Anywhere</button>
+      <select class="mini" id="f-cat" aria-label="Filter by category"><option value="all">All categories</option></select>
+      <select class="mini" id="f-who" aria-label="Filter by who added it"><option value="all">Anyone's idea</option></select>
+    </div>
+
+    <div id="list" class="grid" aria-live="polite"></div>
+  </div>
+  <button class="btn primary fab" id="add-btn">＋ Add a dream</button>
+</div>
+
+<div id="modal"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(function(){
+"use strict";
+
+var BUCKET = "journal-photos";
+var CATEGORIES = ["Activities","Food","Love","Travel","Adventure","Silly","Someday"];
+var PLACES = {br:{name:"Brazil", flag:"🇧🇷"}, jp:{name:"Japan", flag:"🇯🇵"}, any:{name:"Anywhere", flag:"💫"}};
+var EMOJIS = ["💕","🧸","🍜","🐈","✨","🌻","🍿","🎮","🍨","🏠","💋","🌙"];
+
+var sb=null, session=null, myProfile=null;
+var entries=[], profiles={}, signed={}, loaded=false, signing=false;
+var view="open", fPlace="all", fCat="all", fWho="all";
+
+var gate=document.getElementById("gate");
+var gatecard=document.getElementById("gatecard");
+var app=document.getElementById("app");
+var listEl=document.getElementById("list");
+var statsEl=document.getElementById("stats");
+var modalEl=document.getElementById("modal");
+
+/* ---------------- tiny helpers ---------------- */
+function el(t,c,x){ var n=document.createElement(t); if(c) n.className=c; if(x!=null) n.textContent=x; return n; }
+function catClass(c){ return "c-"+String(c||"Activities").toLowerCase().replace(/[^a-z]/g,""); }
+function fmt(d){ if(!d) return ""; var x=new Date(d); return isNaN(x)?"":x.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}); }
+function todayISO(){ var d=new Date(),p=function(n){return(n<10?"0":"")+n;}; return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); }
+function rand(){ return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+function personLabel(id){
+  if(!id) return "our original list";
+  if(session && id===session.user.id) return "you";
+  var p=profiles[id];
+  return (p && p.name) ? (p.emoji? p.emoji+" "+p.name : p.name) : "your person";
+}
+
+/* ---------------- gate screens ---------------- */
+function showGate(build){ gate.hidden=false; app.hidden=true; gatecard.innerHTML=""; build(gatecard); }
+
+function setupScreen(){
+  showGate(function(c){
+    c.appendChild(el("div","route","⚙ SETUP"));
+    c.appendChild(el("h1",null,"Almost there"));
+    c.appendChild(el("p",null,"This page needs your Supabase keys before it can do anything. Open this file on GitHub, tap the pencil, and replace the two lines near the top:"));
+    var ol=el("ol");
+    var l1=el("li"); l1.appendChild(el("code",null,"SUPABASE_URL")); l1.appendChild(document.createTextNode(" — your Project URL"));
+    var l2=el("li"); l2.appendChild(el("code",null,"SUPABASE_ANON_KEY")); l2.appendChild(document.createTextNode(" — your anon public key"));
+    ol.appendChild(l1); ol.appendChild(l2); c.appendChild(ol);
+    c.appendChild(el("p",null,"Both are in Supabase under Project Settings → API. Commit the change and reload this page."));
+  });
+}
+
+function loginScreen(msg){
+  showGate(function(c){
+    c.appendChild(el("div","route","🇧🇷 — 🇯🇵"));
+    c.appendChild(el("h1",null,"Our Love Journal"));
+    c.appendChild(el("p",null,"Sign in to open it."));
+
+    var lEmail=el("label","f"); lEmail.appendChild(el("span",null,"Email"));
+    var iEmail=el("input"); iEmail.type="email"; iEmail.id="l-email"; iEmail.autocomplete="username";
+    lEmail.appendChild(iEmail); c.appendChild(lEmail);
+
+    var lPass=el("label","f"); lPass.appendChild(el("span",null,"Password"));
+    var iPass=el("input"); iPass.type="password"; iPass.id="l-pass"; iPass.autocomplete="current-password";
+    lPass.appendChild(iPass); c.appendChild(lPass);
+
+    var err=el("p","err"); err.hidden=true; c.appendChild(err);
+    if(msg){ err.textContent=msg; err.hidden=false; }
+
+    var go=el("button","btn primary","Open the journal"); go.type="button";
+    go.style.width="100%"; go.style.marginTop="6px";
+    c.appendChild(go);
+
+    function submit(){
+      if(signing) return;
+      signing=true; go.disabled=true; go.textContent="Opening…"; err.hidden=true;
+      sb.auth.signInWithPassword({email:iEmail.value.trim(), password:iPass.value}).then(function(r){
+        signing=false;
+        if(r.error){
+          go.disabled=false; go.textContent="Open the journal";
+          err.textContent = /Invalid login/i.test(r.error.message||"")
+            ? "That email and password don't match. Try again."
+            : "Couldn't sign in: "+(r.error.message||"unknown error");
+          err.hidden=false;
+        }
+      });
+    }
+    go.addEventListener("click",submit);
+    iPass.addEventListener("keydown",function(e){ if(e.key==="Enter") submit(); });
+  });
+}
+
+/* ---------------- profile ---------------- */
+function askWhoYouAre(force){
+  openSheet(function(sheet){
+    sheet.appendChild(el("h2",null, force ? "Who's writing?" : "Your name here"));
+    sheet.appendChild(el("p","sub","So entries know who dreamed them up"));
+
+    var lName=el("label","f"); lName.appendChild(el("span",null,"Name or nickname"));
+    var iName=el("input"); iName.type="text"; iName.id="p-name"; iName.maxLength=40;
+    iName.placeholder="ガブちゃん";
+    iName.value=(myProfile&&myProfile.name)||"";
+    lName.appendChild(iName); sheet.appendChild(lName);
+
+    var lEmo=el("label","f"); lEmo.appendChild(el("span",null,"Your little mark"));
+    var picks=el("div","filters");
+    var chosen=(myProfile&&myProfile.emoji)||"💕";
+    EMOJIS.forEach(function(e){
+      var b=el("button","chip",e); b.type="button";
+      b.style.fontSize="17px";
+      b.setAttribute("aria-pressed", e===chosen ? "true":"false");
+      b.addEventListener("click",function(){
+        chosen=e;
+        Array.prototype.forEach.call(picks.children,function(x){ x.setAttribute("aria-pressed", x===b?"true":"false"); });
+      });
+      picks.appendChild(b);
+    });
+    lEmo.appendChild(picks); sheet.appendChild(lEmo);
+
+    var err=el("p","err"); err.hidden=true; sheet.appendChild(err);
+    var acts=el("div","acts");
+    var save=el("button","btn primary","Save"); save.type="button";
+    acts.appendChild(save);
+    if(!force){
+      var cancel=el("button","btn","Cancel"); cancel.type="button";
+      cancel.addEventListener("click",closeModal); acts.appendChild(cancel);
+    }
+    sheet.appendChild(acts);
+
+    save.addEventListener("click",function(){
+      var n=iName.value.trim();
+      if(!n){ err.textContent="Pick a name first — even a silly one."; err.hidden=false; return; }
+      save.disabled=true; save.textContent="Saving…";
+      sb.from("profiles").upsert({id:session.user.id, name:n, emoji:chosen}).then(function(r){
+        if(r.error){
+          save.disabled=false; save.textContent="Save";
+          err.textContent="Couldn't save that: "+r.error.message; err.hidden=false; return;
+        }
+        myProfile={id:session.user.id, name:n, emoji:chosen};
+        profiles[session.user.id]=myProfile;
+        closeModal(); renderMe(); render();
+      });
+    });
+  }, force);
+}
+
+function renderMe(){
+  var lab=document.getElementById("me-label");
+  lab.innerHTML="";
+  lab.appendChild(document.createTextNode("Signed in as "));
+  var b=el("b",null, myProfile ? ((myProfile.emoji||"")+" "+myProfile.name) : (session?session.user.email:""));
+  lab.appendChild(b);
+}
+
+/* ---------------- data ---------------- */
+function loadAll(){
+  return Promise.all([
+    sb.from("entries").select("*"),
+    sb.from("profiles").select("*")
+  ]).then(function(res){
+    if(!res[0].error) entries = res[0].data || [];
+    if(!res[1].error){
+      profiles={};
+      (res[1].data||[]).forEach(function(p){ profiles[p.id]=p; });
+      myProfile = session ? (profiles[session.user.id]||null) : null;
+    }
+    loaded=true;
+    renderMe();
+    render();
+    if(session && !myProfile) askWhoYouAre(true);
+  });
+}
+
+function signPaths(paths){
+  var need=[];
+  var now=Date.now();
+  paths.forEach(function(p){ if(p && (!signed[p] || signed[p].exp < now+60000) && need.indexOf(p)<0) need.push(p); });
+  if(!need.length) return Promise.resolve(false);
+  return sb.storage.from(BUCKET).createSignedUrls(need, 3600).then(function(r){
+    var got=false;
+    (r.data||[]).forEach(function(d){
+      if(d && d.signedUrl){ signed[d.path]={url:d.signedUrl, exp:Date.now()+3400*1000}; got=true; }
+    });
+    return got;
+  }).catch(function(){ return false; });
+}
+
+/* ---------------- render ---------------- */
+function visible(){
+  return entries.filter(function(e){
+    if(view==="open" && e.done) return false;
+    if(view==="done" && !e.done) return false;
+    if(fPlace!=="all" && e.place!==fPlace) return false;
+    if(fCat!=="all" && e.category!==fCat) return false;
+    if(fWho!=="all"){
+      if(fWho==="none" ? !!e.created_by : e.created_by!==fWho) return false;
+    }
+    return true;
+  }).sort(function(a,b){
+    if(a.done && b.done) return String(b.done_at||"").localeCompare(String(a.done_at||""));
+    return String(b.created_at||"").localeCompare(String(a.created_at||""));
+  });
+}
+
+function renderStats(){
+  var open=0, done=0, photos=0;
+  entries.forEach(function(e){ if(e.done) done++; else open++; photos+=(e.photos||[]).length; });
+  statsEl.innerHTML="";
+  [[open,"still to do","c-activities"],[done,"memories made","c-love"],[photos,"photos kept","c-food"]].forEach(function(s){
+    var d=el("div","stat "+s[2]);
+    d.appendChild(el("b",null,String(s[0])));
+    d.appendChild(el("span",null,s[1]));
+    statsEl.appendChild(d);
+  });
+}
+
+function renderFilters(){
+  var cat=document.getElementById("f-cat"), cur=cat.value;
+  var used={}; entries.forEach(function(e){ if(e.category) used[e.category]=true; });
+  cat.innerHTML=""; cat.appendChild(new Option("All categories","all"));
+  CATEGORIES.forEach(function(c){ if(used[c]) cat.appendChild(new Option(c,c)); });
+  cat.value = cur && [].some.call(cat.options,function(o){return o.value===cur;}) ? cur : "all";
+  fCat=cat.value;
+
+  var w=document.getElementById("f-who"), curW=w.value;
+  var ids={}, anyNull=false;
+  entries.forEach(function(e){ if(e.created_by) ids[e.created_by]=true; else anyNull=true; });
+  w.innerHTML=""; w.appendChild(new Option("Anyone's idea","all"));
+  Object.keys(ids).forEach(function(i){
+    w.appendChild(new Option(i===(session&&session.user.id) ? "Added by me" : ("By "+personLabel(i)), i));
+  });
+  if(anyNull) w.appendChild(new Option("From our Docs list","none"));
+  w.value = curW && [].some.call(w.options,function(o){return o.value===curW;}) ? curW : "all";
+  fWho=w.value;
+}
+
+function card(e){
+  var b=el("button","entry "+catClass(e.category)+(e.done?" done":""));
+  b.type="button";
+  b.appendChild(el("div","topbar"));
+
+  var photos=e.photos||[];
+  if(photos.length && signed[photos[0]]){
+    var cov=el("img","cover"); cov.src=signed[photos[0]].url; cov.alt=""; cov.loading="lazy";
+    b.appendChild(cov);
+  }
+
+  var body=el("div","body");
+  var tl=el("div","tagline");
+  tl.appendChild(el("span","cat", e.category||"Activities"));
+  tl.appendChild(el("span","flag", (PLACES[e.place]||PLACES.any).flag));
+  body.appendChild(tl);
+  body.appendChild(el("h3",null,e.title||"Untitled"));
+  if(e.note) body.appendChild(el("p",null,e.note));
+
+  var foot=el("div","foot");
+  if(e.done){
+    foot.appendChild(el("span","stamp","done "+(fmt(e.done_at)||"")));
+    if(photos.length>1) foot.appendChild(el("span","morephotos","+"+(photos.length-1)+" photos"));
+  }else{
+    foot.appendChild(el("span",null,"from "+personLabel(e.created_by)));
+  }
+  body.appendChild(foot);
+  b.appendChild(body);
+  b.addEventListener("click",function(){ openDetail(e.id); });
+  return b;
+}
+
+var rendering=false;
+function render(){
+  renderStats(); renderFilters();
+  var rows=visible();
+  listEl.innerHTML="";
+  listEl.className = rows.length ? "grid" : "";
+
+  if(!loaded){ listEl.appendChild(el("p","note","Opening the journal…")); return; }
+
+  if(!rows.length){
+    var box=el("div","empty");
+    if(!entries.length){
+      box.appendChild(el("h3",null,"Nothing in here yet"));
+      box.appendChild(el("p",null,"Add the first thing you want to do together. The tiny ones count the most."));
+      var s=el("button","btn primary","＋ Add the first one"); s.type="button";
+      s.addEventListener("click",function(){ openForm(null,null); });
+      box.appendChild(s);
+    }else if(view==="done"){
+      box.appendChild(el("h3",null,"No memories yet"));
+      box.appendChild(el("p",null,"Finish something from Dreams, tap “We did it”, and it lands here with the photos."));
+    }else{
+      box.appendChild(el("h3",null,"Nothing matches"));
+      box.appendChild(el("p",null,"Try another place or category."));
+    }
+    listEl.appendChild(box);
+    return;
+  }
+
+  rows.forEach(function(e){ listEl.appendChild(card(e)); });
+
+  if(!rendering){
+    var covers=rows.map(function(e){ return (e.photos||[])[0]; }).filter(Boolean);
+    if(covers.length) signPaths(covers).then(function(got){
+      if(got){ rendering=true; render(); rendering=false; }
+    });
+  }
+}
+
+/* ---------------- sheets ---------------- */
+var lastFocus=null;
+function closeModal(){ modalEl.innerHTML=""; document.body.style.overflow=""; if(lastFocus&&lastFocus.focus) lastFocus.focus(); }
+function openSheet(build, locked){
+  lastFocus=document.activeElement;
+  modalEl.innerHTML="";
+  var veil=el("div","veil");
+  if(!locked) veil.addEventListener("click",function(ev){ if(ev.target===veil) closeModal(); });
+  var sheet=el("div","sheet");
+  sheet.setAttribute("role","dialog"); sheet.setAttribute("aria-modal","true");
+  build(sheet);
+  veil.appendChild(sheet); modalEl.appendChild(veil);
+  document.body.style.overflow="hidden";
+  var f=sheet.querySelector("input,textarea,select,button"); if(f) f.focus();
+}
+document.addEventListener("keydown",function(e){ if(e.key==="Escape" && modalEl.firstChild) closeModal(); });
+
+/* ---------------- add / edit ---------------- */
+function openForm(id, preset){
+  var ex = id ? entries.filter(function(e){return e.id===id;})[0] : null;
+  var base = ex || preset || {};
+  openSheet(function(sheet){
+    sheet.appendChild(el("h2",null, ex ? "Edit this one" : "Add a dream"));
+    sheet.appendChild(el("p","sub", ex ? "Change anything" : "Something for the two of you"));
+
+    var lT=el("label","f"); lT.appendChild(el("span",null,"What is it"));
+    var iT=el("input"); iT.type="text"; iT.id="e-title"; iT.maxLength=160;
+    iT.placeholder="回転寿司 together";
+    iT.value=base.title||""; lT.appendChild(iT); sheet.appendChild(lT);
+
+    var lN=el("label","f"); lN.appendChild(el("span",null,"Details (optional)"));
+    var iN=el("textarea"); iN.id="e-note"; iN.maxLength=2000;
+    iN.value=base.note||""; lN.appendChild(iN); sheet.appendChild(lN);
+
+    var row=el("div","row2");
+    var lP=el("label","f"); lP.appendChild(el("span",null,"Where"));
+    var sP=el("select","full"); sP.id="e-place";
+    Object.keys(PLACES).forEach(function(k){ sP.appendChild(new Option(PLACES[k].flag+"  "+PLACES[k].name,k)); });
+    sP.value=base.place||"any"; lP.appendChild(sP); row.appendChild(lP);
+
+    var lC=el("label","f"); lC.appendChild(el("span",null,"Category"));
+    var sC=el("select","full"); sC.id="e-cat";
+    CATEGORIES.forEach(function(c){ sC.appendChild(new Option(c,c)); });
+    sC.value=base.category||"Activities"; lC.appendChild(sC); row.appendChild(lC);
+    sheet.appendChild(row);
+
+    var err=el("p","err"); err.hidden=true; sheet.appendChild(err);
+    var acts=el("div","acts");
+    var save=el("button","btn primary", ex?"Save changes":"Add it"); save.type="button";
+    var cancel=el("button","btn","Cancel"); cancel.type="button"; cancel.addEventListener("click",closeModal);
+    acts.appendChild(save); acts.appendChild(cancel); sheet.appendChild(acts);
+
+    save.addEventListener("click",function(){
+      var title=iT.value.trim();
+      if(!title){ err.textContent="Give it a name first."; err.hidden=false; iT.focus(); return; }
+      save.disabled=true; save.textContent="Saving…"; err.hidden=true;
+      var payload={title:title, note:iN.value.trim(), place:sP.value, category:sC.value, updated_at:new Date().toISOString()};
+      var q;
+      if(ex){ q=sb.from("entries").update(payload).eq("id",ex.id); }
+      else { payload.created_by=session.user.id; q=sb.from("entries").insert(payload); }
+      q.then(function(r){
+        if(r.error){
+          save.disabled=false; save.textContent= ex?"Save changes":"Add it";
+          err.textContent="That didn't save: "+r.error.message; err.hidden=false; return;
+        }
+        closeModal(); loadAll();
+      });
+    });
+  });
+}
+
+/* ---------------- photos ---------------- */
+function shrink(file){
+  return new Promise(function(resolve){
+    if(!/^image\//.test(file.type) || /svg/.test(file.type) || !window.createImageBitmap) return resolve(file);
+    createImageBitmap(file).then(function(bmp){
+      var max=1600, scale=Math.min(1, max/Math.max(bmp.width,bmp.height));
+      if(scale===1 && file.size < 2.5*1024*1024){ if(bmp.close) bmp.close(); return resolve(file); }
+      var w=Math.round(bmp.width*scale), h=Math.round(bmp.height*scale);
+      var c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(bmp,0,0,w,h);
+      if(bmp.close) bmp.close();
+      c.toBlob(function(blob){ resolve(blob && blob.size<file.size ? blob : file); },"image/jpeg",0.85);
+    }).catch(function(){ resolve(file); });
+  });
+}
+
+function uploadPhotos(entry, files, onStatus){
+  var list=Array.prototype.slice.call(files), paths=[];
+  var chain=Promise.resolve();
+  list.forEach(function(f,i){
+    chain=chain.then(function(){
+      onStatus("Uploading photo "+(i+1)+" of "+list.length+"…");
+      return shrink(f).then(function(blob){
+        var ext = /png$/.test(blob.type) ? "png" : "jpg";
+        var path = entry.id+"/"+rand()+"."+ext;
+        return sb.storage.from(BUCKET).upload(path, blob, {contentType: blob.type||"image/jpeg", upsert:false})
+          .then(function(r){
+            if(r.error) throw r.error;
+            paths.push(path);
+          });
+      });
+    });
+  });
+  return chain.then(function(){
+    var next=(entry.photos||[]).concat(paths);
+    return sb.from("entries").update({photos:next, updated_at:new Date().toISOString()}).eq("id",entry.id)
+      .then(function(r){ if(r.error) throw r.error; });
+  });
+}
+
+/* ---------------- detail ---------------- */
+function openDetail(id){
+  var e=entries.filter(function(x){return x.id===id;})[0];
+  if(!e) return;
+  var photos=e.photos||[];
+
+  openSheet(function(sheet){
+    sheet.className="sheet "+catClass(e.category);
+    var h=el("h2","jp",e.title||"Untitled"); sheet.appendChild(h);
+    sheet.appendChild(el("p","sub", e.done ? "Memory · "+fmt(e.done_at) : "Still ahead of us"));
+
+    var facts=el("div","facts");
+    facts.appendChild(el("span","cat", e.category||"Activities"));
+    facts.appendChild(el("span",null,(PLACES[e.place]||PLACES.any).flag+" "+(PLACES[e.place]||PLACES.any).name));
+    facts.appendChild(el("span",null,"· from "+personLabel(e.created_by)));
+    sheet.appendChild(facts);
+
+    if(e.note) sheet.appendChild(el("p","body-note",e.note));
+    if(e.done && e.memory_note) sheet.appendChild(el("p","memory-note",e.memory_note));
+
+    if(photos.length){
+      var g=el("div","gallery");
+      photos.forEach(function(p){
+        var fig=el("figure");
+        var img=el("img"); img.alt="Photo from this memory"; img.loading="lazy";
+        if(signed[p]) img.src=signed[p].url;
+        fig.appendChild(img);
+        var rm=el("button",null,"×"); rm.type="button"; rm.title="Remove this photo";
+        rm.addEventListener("click",function(){
+          if(!window.confirm("Remove this photo for good?")) return;
+          var next=photos.filter(function(x){return x!==p;});
+          sb.from("entries").update({photos:next}).eq("id",e.id).then(function(){
+            return sb.storage.from(BUCKET).remove([p]);
+          }).then(function(){ return loadAll(); }).then(function(){ openDetail(e.id); });
+        });
+        fig.appendChild(rm);
+        g.appendChild(fig);
+      });
+      sheet.appendChild(g);
+      signPaths(photos).then(function(got){ if(got) openDetail(e.id); });
+    }
+
+    var status=el("p","note"); status.hidden=true; sheet.appendChild(status);
+    var err=el("p","err"); err.hidden=true; sheet.appendChild(err);
+    function say(t){ status.textContent=t; status.hidden=!t; }
+    function fail(t){ err.textContent=t; err.hidden=false; say(""); }
+
+    var acts=el("div","acts");
+    if(!e.done){
+      var done=el("button","btn gold","🎉 We did it"); done.type="button";
+      done.addEventListener("click",function(){ openComplete(e.id); });
+      acts.appendChild(done);
+    }
+    var addWrap=el("label","btn"); addWrap.style.cursor="pointer";
+    addWrap.appendChild(document.createTextNode(photos.length?"📷 Add photos":"📷 Add a photo"));
+    var fi=el("input"); fi.type="file"; fi.id="d-photos"; fi.accept="image/*"; fi.multiple=true;
+    fi.style.display="none";
+    fi.addEventListener("change",function(){
+      if(!fi.files||!fi.files.length) return;
+      err.hidden=true;
+      uploadPhotos(e, fi.files, say).then(function(){
+        return loadAll();
+      }).then(function(){ say(""); openDetail(e.id); })
+        .catch(function(ex){ fail("The upload didn't finish: "+((ex&&ex.message)||"try again in a moment")); });
+      fi.value="";
+    });
+    addWrap.appendChild(fi);
+    acts.appendChild(addWrap);
+
+    var edit=el("button","btn","Edit"); edit.type="button";
+    edit.addEventListener("click",function(){ openForm(e.id); });
+    acts.appendChild(edit);
+    acts.appendChild(el("div","spacer"));
+    var close=el("button","btn","Close"); close.type="button";
+    close.addEventListener("click",closeModal); acts.appendChild(close);
+    sheet.appendChild(acts);
+
+    var row=el("div","acts");
+    if(e.done){
+      var re=el("button","btn flat","↩ Back to dreams"); re.type="button";
+      re.addEventListener("click",function(){
+        sb.from("entries").update({done:false, done_at:null}).eq("id",e.id)
+          .then(function(){ closeModal(); loadAll(); });
+      });
+      row.appendChild(re);
+    }
+    var del=el("button","btn flat","Delete this entry"); del.type="button";
+    del.style.marginLeft="auto";
+    del.addEventListener("click",function(){
+      if(!window.confirm("Delete “"+(e.title||"this entry")+"” and its photos? This can't be undone.")) return;
+      sb.from("entries").delete().eq("id",e.id).then(function(r){
+        if(r.error){ fail("Couldn't delete that: "+r.error.message); return; }
+        if(photos.length) sb.storage.from(BUCKET).remove(photos);
+        closeModal(); loadAll();
+      });
+    });
+    row.appendChild(del);
+    sheet.appendChild(row);
+  });
+}
+
+/* ---------------- complete ---------------- */
+function openComplete(id){
+  var e=entries.filter(function(x){return x.id===id;})[0];
+  if(!e) return;
+  openSheet(function(sheet){
+    sheet.appendChild(el("h2",null,"🎉 We did it"));
+    var s=el("p","sub"); s.textContent=e.title||""; sheet.appendChild(s);
+
+    var lD=el("label","f"); lD.appendChild(el("span",null,"When"));
+    var iD=el("input"); iD.type="date"; iD.id="c-date"; iD.value=todayISO();
+    lD.appendChild(iD); sheet.appendChild(lD);
+
+    var lN=el("label","f"); lN.appendChild(el("span",null,"What do you want to remember about it"));
+    var iN=el("textarea"); iN.id="c-note"; iN.maxLength=4000;
+    iN.placeholder="It rained the whole time and we didn't care.";
+    lN.appendChild(iN); sheet.appendChild(lN);
+
+    var lP=el("label","f"); lP.appendChild(el("span",null,"Photos (you can add more later)"));
+    var iP=el("input","filepick"); iP.type="file"; iP.id="c-photos"; iP.accept="image/*"; iP.multiple=true;
+    lP.appendChild(iP); sheet.appendChild(lP);
+
+    var status=el("p","note"); status.hidden=true; sheet.appendChild(status);
+    var err=el("p","err"); err.hidden=true; sheet.appendChild(err);
+
+    var acts=el("div","acts");
+    var save=el("button","btn gold","Save this memory"); save.type="button";
+    var cancel=el("button","btn","Not yet"); cancel.type="button"; cancel.addEventListener("click",closeModal);
+    acts.appendChild(save); acts.appendChild(cancel); sheet.appendChild(acts);
+
+    save.addEventListener("click",function(){
+      save.disabled=true; save.textContent="Saving…"; err.hidden=true;
+      sb.from("entries").update({
+        done:true, done_at:iD.value||todayISO(), memory_note:iN.value.trim(), updated_at:new Date().toISOString()
+      }).eq("id",e.id).then(function(r){
+        if(r.error) throw r.error;
+        if(!iP.files || !iP.files.length) return null;
+        return uploadPhotos(e, iP.files, function(t){ status.textContent=t; status.hidden=!t; });
+      }).then(function(){
+        return loadAll();
+      }).then(function(){
+        closeModal(); view="done"; syncTabs(); render();
+      }).catch(function(ex){
+        save.disabled=false; save.textContent="Save this memory"; status.hidden=true;
+        err.textContent="Something didn't save: "+((ex&&ex.message)||"try again"); err.hidden=false;
+      });
+    });
+  });
+}
+
+/* ---------------- controls ---------------- */
+var TABS=[["open","tab-open"],["done","tab-done"],["all","tab-all"]];
+function syncTabs(){ TABS.forEach(function(t){ document.getElementById(t[1]).setAttribute("aria-selected", view===t[0]?"true":"false"); }); }
+TABS.forEach(function(t){ document.getElementById(t[1]).addEventListener("click",function(){ view=t[0]; syncTabs(); render(); }); });
+Array.prototype.forEach.call(document.querySelectorAll("[data-place]"),function(btn){
+  btn.addEventListener("click",function(){
+    fPlace=btn.getAttribute("data-place");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-place]"),function(b){
+      b.setAttribute("aria-pressed", b===btn?"true":"false");
+    });
+    render();
+  });
+});
+document.getElementById("f-cat").addEventListener("change",function(){ fCat=this.value; render(); });
+document.getElementById("f-who").addEventListener("change",function(){ fWho=this.value; render(); });
+document.getElementById("add-btn").addEventListener("click",function(){ openForm(null,null); });
+document.getElementById("edit-me").addEventListener("click",function(){ askWhoYouAre(false); });
+document.getElementById("signout").addEventListener("click",function(){ sb.auth.signOut(); });
+
+/* ---------------- boot ---------------- */
+if(!window.supabase || /^PASTE_/.test(SUPABASE_URL) || /^PASTE_/.test(SUPABASE_ANON_KEY)){
+  setupScreen();
+}else{
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  sb.auth.getSession().then(function(r){
+    session = r.data ? r.data.session : null;
+    start();
+  });
+
+  sb.auth.onAuthStateChange(function(_evt, s){
+    var was = session ? session.user.id : null;
+    session = s;
+    if((session ? session.user.id : null) !== was) start();
+  });
+
+  var channel=null;
+  function start(){
+    if(!session){
+      gate.hidden=false; app.hidden=true; modalEl.innerHTML=""; document.body.style.overflow="";
+      loginScreen(null);
+      return;
+    }
+    gate.hidden=true; app.hidden=false;
+    loaded=false; render();
+    loadAll();
+    if(!channel){
+      channel = sb.channel("journal")
+        .on("postgres_changes",{event:"*",schema:"public",table:"entries"}, function(){ loadAll(); })
+        .subscribe();
+    }
+  }
+}
+})();
+</script>
+</body>
+</html>

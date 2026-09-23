@@ -70,6 +70,23 @@ h1{font-family:var(--hand); font-weight:700; font-size:clamp(54px,14vw,86px); li
 .linkbtn{appearance:none; background:none; border:0; padding:0; cursor:pointer; font-size:13px; color:var(--chalk-soft); text-decoration:underline; text-underline-offset:3px;}
 .linkbtn:hover{color:var(--chalk);}
 
+/* ---------- search ---------- */
+.search{position:relative; margin-top:22px;}
+.search .mag{position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:15px; opacity:.75; pointer-events:none;}
+#q{
+  width:100%; font-family:inherit; font-size:16px; font-weight:500; color:var(--chalk);
+  background:var(--page-2); border:1.5px solid var(--page-line); border-radius:999px;
+  padding:11px 44px 11px 40px; -webkit-appearance:none; appearance:none;
+}
+#q::placeholder{color:var(--chalk-faint);}
+#q::-webkit-search-cancel-button{display:none;}
+#q-clear{
+  position:absolute; right:7px; top:50%; transform:translateY(-50%);
+  width:30px; height:30px; border-radius:50%; border:0; cursor:pointer;
+  background:rgba(255,255,255,.12); color:var(--chalk); font-size:14px; line-height:1;
+}
+.tabs.searching{opacity:.45;}
+
 /* ---------- tabs + filters ---------- */
 .tabs{display:flex; gap:6px; margin:28px 0 0; border-bottom:3px solid var(--paper);}
 .tab{
@@ -279,6 +296,11 @@ textarea{resize:vertical; min-height:80px; line-height:1.55;}
       </div>
     </header>
 
+    <div class="search">
+      <span class="mag" aria-hidden="true">🔍</span>
+      <input id="q" type="search" autocomplete="off" placeholder="Search our album…" aria-label="Search entry titles">
+      <button id="q-clear" type="button" aria-label="Clear search" hidden>✕</button>
+    </div>
     <div class="tabs" role="tablist" aria-label="View">
       <button class="tab" role="tab" id="tab-all" aria-selected="true">Everything</button>
       <button class="tab" role="tab" id="tab-open" aria-selected="false">Dreams</button>
@@ -325,7 +347,7 @@ var SUPA_KEY = window.SUPABASE_ANON_KEY || "";
 
 var sb=null, session=null, myProfile=null;
 var entries=[], profiles={}, signed={}, loaded=false, signing=false;
-var view="all", fPlace="all", fCat="all", fWho="all";
+var view="all", fPlace="all", fCat="all", fWho="all", q="";
 var catSig="";
 
 var gate=document.getElementById("gate");
@@ -533,8 +555,12 @@ function signPaths(paths){
 /* ---------------- render ---------------- */
 function visible(){
   return entries.filter(function(e){
-    if(view==="open" && e.done) return false;
-    if(view==="done" && !e.done) return false;
+    if(q){
+      if(String(e.title||"").toLowerCase().indexOf(q)<0) return false;
+    }else{
+      if(view==="open" && e.done) return false;
+      if(view==="done" && !e.done) return false;
+    }
     if(fPlace!=="all" && e.place!==fPlace) return false;
     if(fCat!=="all" && e.category!==fCat) return false;
     if(fWho!=="all"){
@@ -640,6 +666,11 @@ function card(e){
 function render(){
   renderStats(); renderFilters();
   var rows=visible();
+
+  document.getElementById("q-clear").hidden = !q;
+  document.getElementById("add-btn").hidden = !!q;
+  document.querySelector(".tabs").className = "tabs"+(q?" searching":"");
+
   listEl.innerHTML="";
   listEl.className = rows.length ? "grid" : "";
 
@@ -653,6 +684,12 @@ function render(){
       var s=el("button","btn gold","＋ Add the first one"); s.type="button";
       s.addEventListener("click",function(){ openForm(null,null); });
       box.appendChild(s);
+    }else if(q){
+      box.appendChild(el("h3",null,"Nothing found"));
+      box.appendChild(el("p",null,"No title has \u201C"+q+"\u201D in it. Check the place and category filters too."));
+      var cl=el("button","btn gold","Clear search"); cl.type="button";
+      cl.addEventListener("click",clearSearch);
+      box.appendChild(cl);
     }else if(view==="done"){
       box.appendChild(el("h3",null,"No memories yet"));
       box.appendChild(el("p",null,"Finish something from Dreams, tap “We did it”, and it lands here with the photos."));
@@ -1213,9 +1250,17 @@ function openComplete(id){
 }
 
 /* ---------------- controls ---------------- */
+var qInput=document.getElementById("q");
+function clearSearch(){ q=""; qInput.value=""; render(); qInput.focus({preventScroll:true}); }
+qInput.addEventListener("input",function(){ q=qInput.value.trim().toLowerCase(); render(); });
+qInput.addEventListener("keydown",function(e){ if(e.key==="Escape"){ e.stopPropagation(); clearSearch(); } });
+document.getElementById("q-clear").addEventListener("click",clearSearch);
+
 var TABS=[["all","tab-all"],["open","tab-open"],["done","tab-done"]];
 function syncTabs(){ TABS.forEach(function(t){ document.getElementById(t[1]).setAttribute("aria-selected", view===t[0]?"true":"false"); }); }
-TABS.forEach(function(t){ document.getElementById(t[1]).addEventListener("click",function(){ view=t[0]; syncTabs(); render(); }); });
+TABS.forEach(function(t){ document.getElementById(t[1]).addEventListener("click",function(){
+  view=t[0]; q=""; qInput.value=""; syncTabs(); render();
+}); });
 Array.prototype.forEach.call(document.querySelectorAll("[data-place]"),function(btn){
   btn.addEventListener("click",function(){
     fPlace=btn.getAttribute("data-place");

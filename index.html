@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1C1B21">
 <title>Our Love Journal</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Love Journal">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script>
 /* If anything breaks, show it on screen instead of a blank page */
 window.addEventListener("error", function(ev){
@@ -366,6 +373,7 @@ var SUPA_KEY = window.SUPABASE_ANON_KEY || "";
 var sb=null, session=null, myProfile=null;
 var entries=[], profiles={}, signed={}, loaded=false, signing=false;
 var notesBy={}, notesOn=true;   // ひとこと, grouped by entry id
+var sharedChecked=false;
 var view="all", fPlace="all", fCat="all", fWho="all", q="";
 var catSig="";
 
@@ -561,6 +569,7 @@ function loadAll(){
     renderMe();
     render();
     if(session && !myProfile && !modalEl.firstChild) askWhoYouAre(true);
+    else if(session && !modalEl.firstChild && !sharedChecked){ sharedChecked=true; takeSharedPhotos(); }
   });
 }
 
@@ -1384,6 +1393,94 @@ function openComplete(id){
   });
 }
 
+/* ---------------- photos shared from another app ---------------- */
+function takeSharedPhotos(){
+  if(!window.caches) return;
+  var qs=new URLSearchParams(location.search);
+  if(!qs.has("shared")) return;
+  var n=parseInt(qs.get("shared"),10)||0;
+  history.replaceState(null,"",location.pathname);
+  if(!n) return;
+
+  caches.open("lj-shared").then(function(c){
+    return c.keys().then(function(keys){
+      return Promise.all(keys.map(function(k){
+        return c.match(k).then(function(res){
+          if(!res) return null;
+          var name=decodeURIComponent(res.headers.get("X-Name")||"photo.jpg");
+          var type=res.headers.get("Content-Type")||"image/jpeg";
+          return res.blob().then(function(b){ return new File([b], name, {type:type}); });
+        });
+      }));
+    }).then(function(files){
+      files=files.filter(Boolean);
+      if(files.length) pickTarget(files);
+      c.keys().then(function(keys){ keys.forEach(function(k){ c.delete(k); }); });
+    });
+  }).catch(function(){});
+}
+
+function pickTarget(files){
+  openSheet(function(sheet){
+    sheet.className="sheet"; applyCat(sheet,"Love");
+    sheet.appendChild(el("span","tape"));
+    sheet.appendChild(el("h2",null, files.length===1 ? "One photo" : files.length+" photos"));
+    sheet.appendChild(el("p","sub","Where do they belong?"));
+
+    var lf=el("label","f"); lf.appendChild(el("span",null,"Find the entry"));
+    var fi=el("input"); fi.type="text"; fi.id="pick-q"; fi.placeholder="Type to narrow it down";
+    lf.appendChild(fi); sheet.appendChild(lf);
+
+    var listBox=el("div"); listBox.style.cssText="max-height:none;";
+    sheet.appendChild(listBox);
+    var status=el("p","note"); status.hidden=true; sheet.appendChild(status);
+    var errP=el("p","err"); errP.hidden=true; sheet.appendChild(errP);
+
+    function drawList(){
+      listBox.innerHTML="";
+      var term=fi.value.trim().toLowerCase();
+      var rows=entries.filter(function(e){
+        return !term || String(e.title||"").toLowerCase().indexOf(term)>-1;
+      }).sort(function(a,b){
+        if(a.done!==b.done) return a.done ? -1 : 1;
+        return String(b.done_at||b.created_at||"").localeCompare(String(a.done_at||a.created_at||""));
+      }).slice(0,40);
+      if(!rows.length){ listBox.appendChild(el("p","hk-none","Nothing matches that.")); return; }
+      rows.forEach(function(e){
+        var row=el("button","catrow"); row.type="button";
+        row.style.cssText="width:100%; text-align:left; background:none; cursor:pointer; font:inherit; color:inherit;";
+        var dot=el("span","dotc"); dot.style.background=catInfo(e.category).color; row.appendChild(dot);
+        var nm=el("div","nm",catEmoji(e.category)+" "+(e.title||"Untitled"));
+        nm.appendChild(el("small",null,(e.done?"memory · "+fmt(e.done_at):"dream")+" · "+placeOf(e).flag));
+        row.appendChild(nm);
+        row.addEventListener("click",function(){ send(e); });
+        listBox.appendChild(row);
+      });
+    }
+
+    function send(e){
+      listBox.innerHTML=""; fi.disabled=true; errP.hidden=true;
+      status.hidden=false; status.textContent="Adding to \u201C"+(e.title||"")+"\u201D…";
+      uploadPhotos(e, files, function(t){ status.textContent=t; })
+        .then(function(){ return loadAll(); })
+        .then(function(){ closeModal(); openDetail(e.id); })
+        .catch(function(ex){
+          fi.disabled=false; status.hidden=true;
+          errP.textContent="That didn't finish: "+((ex&&ex.message)||"try again"); errP.hidden=false;
+          drawList();
+        });
+    }
+
+    fi.addEventListener("input",drawList);
+    drawList();
+
+    var acts=el("div","acts");
+    var cancel=el("button","btn","Not now"); cancel.type="button";
+    cancel.addEventListener("click",closeModal);
+    acts.appendChild(cancel); sheet.appendChild(acts);
+  });
+}
+
 /* ---------------- controls ---------------- */
 var qInput=document.getElementById("q");
 function clearSearch(){ q=""; qInput.value=""; render(); qInput.focus({preventScroll:true}); }
@@ -1445,6 +1542,13 @@ if(!window.supabase || !SUPA_URL || !SUPA_KEY || /^PASTE_/.test(SUPA_URL) || /^P
   });
 }
 })();
+
+/* installability + fast, offline-tolerant opening */
+if("serviceWorker" in navigator && (location.protocol==="https:" || location.hostname==="localhost")){
+  window.addEventListener("load",function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
 </script>
 </body>
 </html>

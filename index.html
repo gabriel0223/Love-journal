@@ -159,8 +159,8 @@ select.mini{
 }
 .hanko span{transform:translateY(-1px);}
 .pol.done .t{padding-right:30px;}
-.sheet .hanko{top:22px; right:18px; width:62px; height:62px; font-size:34px; --ht:-9deg;}
-.sheet.done h2{padding-right:66px;}
+.sheet .hanko{top:14px; right:16px; width:62px; height:62px; font-size:34px; --ht:-9deg;}
+.sub.sealed{display:flex; align-items:center; gap:10px;}
 
 /* manage categories */
 .catrow{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1.5px dashed var(--paper-line);}
@@ -199,16 +199,20 @@ select.mini{
 }
 
 /* ---------- sheets (album pages) ---------- */
-.veil{position:fixed; inset:0; z-index:60; background:rgba(6,6,9,.74); display:flex; align-items:flex-end; justify-content:center; overflow-y:auto;}
+.veil{position:fixed; inset:0; z-index:60; background:rgba(6,6,9,.74); display:flex; align-items:flex-end; justify-content:center; overflow:hidden;}
 @media (min-width:640px){ .veil{align-items:center; padding:24px;} }
 .sheet{
   position:relative; width:100%; max-width:560px; background:var(--paper); color:var(--ink);
-  border-radius:16px 16px 0 0; padding:28px 20px calc(26px + env(safe-area-inset-bottom,0px));
-  margin-top:50px; box-shadow:0 -10px 30px rgba(0,0,0,.5);
+  border-radius:16px 16px 0 0; margin-top:0;
+  padding:28px 20px calc(26px + env(safe-area-inset-bottom,0px));
+  box-shadow:0 -10px 30px rgba(0,0,0,.5);
+  max-height:calc(100vh - 34px); max-height:calc(100dvh - 34px);
+  overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
 }
-@media (min-width:640px){ .sheet{border-radius:4px; margin:0;} }
-.sheet .tape{top:-12px;}
+@media (min-width:640px){ .sheet{border-radius:4px; margin:0; max-height:calc(100vh - 48px); max-height:calc(100dvh - 48px);} }
+.sheet .tape{top:0;}
 .sheet h2{font-family:var(--hand); font-weight:700; font-size:40px; line-height:1; margin:0 0 6px; word-break:break-word;}
+.sheet.done h2{padding-right:72px;}
 .sheet .sub{font-size:11.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin:0 0 16px;}
 .sheet .chip{color:var(--ink); border-color:var(--paper-line);}
 .sheet .chip[aria-pressed="true"]{background:var(--ink); color:var(--paper); border-color:var(--ink);}
@@ -222,7 +226,8 @@ textarea{resize:vertical; min-height:80px; line-height:1.55;}
 .filepick{display:block; font-size:14px; color:var(--ink);}
 .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
 @media (max-width:430px){ .row2{grid-template-columns:1fr;} }
-.acts{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;}
+.acts, .acts-row{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:6px;}
+.acts-row{margin-top:18px;}
 .acts .spacer{flex:1;}
 .facts{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; font-size:13px; color:var(--ink-soft); font-weight:500;}
 .pill{display:inline-flex; align-items:center; gap:5px; background:var(--soft,var(--paper-2)); color:var(--ink); font-weight:700; font-size:12.5px; padding:3px 10px; border-radius:999px;}
@@ -739,9 +744,12 @@ function openSheet(build, locked){
   var sheet=el("div","sheet");
   sheet.setAttribute("role","dialog"); sheet.setAttribute("aria-modal","true");
   build(sheet);
+
   veil.appendChild(sheet); modalEl.appendChild(veil);
   document.body.style.overflow="hidden";
-  var f=sheet.querySelector("input,textarea,select,button"); if(f) f.focus({preventScroll:true});
+  sheet.scrollTop=0;
+  var f=sheet.querySelector("input:not([type=file]),textarea,select");
+  if(f && f.offsetParent!==null) f.focus({preventScroll:true});
 }
 document.addEventListener("keydown",function(e){
   if(e.key==="Escape" && modalEl.firstChild && !document.querySelector(".lb")) closeModal();
@@ -1126,9 +1134,12 @@ function openDetail(id){
   openSheet(function(sheet){
     sheet.className="sheet"+(e.done?" done":""); applyCat(sheet, e.category);
     var tape=el("span","tape"); tape.style.setProperty("--tt",tapeFor(e.id)); sheet.appendChild(tape);
-    if(e.done) sheet.appendChild(hanko());
     sheet.appendChild(el("h2",null,e.title||"Untitled"));
-    sheet.appendChild(el("p","sub", e.done ? "思い出 · Memory · "+fmt(e.done_at) : "Still ahead of us"));
+    var sub=el("p","sub"+(e.done?" sealed":""));
+    if(e.done) sub.appendChild(hanko());
+    sub.appendChild(el("span",null,"思い出 · Memory · "+fmt(e.done_at)));
+    if(!e.done) sub.textContent="Still ahead of us";
+    sheet.appendChild(sub);
 
     var facts=el("div","facts");
     facts.appendChild(el("span","pill", catEmoji(e.category)+" "+(e.category||"Activities")));
@@ -1193,11 +1204,11 @@ function openDetail(id){
     edit.addEventListener("click",function(){ openForm(e.id); });
     acts.appendChild(edit);
     acts.appendChild(el("div","spacer"));
-    var close=el("button","btn primary","Close"); close.type="button";
-    close.addEventListener("click",closeModal); acts.appendChild(close);
-    sheet.appendChild(acts);
+    var closeBtn=el("button","btn primary","Close"); closeBtn.type="button";
+    closeBtn.addEventListener("click",closeModal);
+    acts.appendChild(closeBtn);
 
-    var row=el("div","acts");
+    var row=el("div","acts-row");
     if(e.done){
       var re=el("button","btn flat","↩ Back to dreams"); re.type="button";
       re.addEventListener("click",function(){
@@ -1217,6 +1228,7 @@ function openDetail(id){
       });
     });
     row.appendChild(del);
+    sheet.appendChild(acts);
     sheet.appendChild(row);
   });
 }

@@ -240,6 +240,19 @@ textarea{resize:vertical; min-height:80px; line-height:1.55;}
 .note{font-size:13px; color:var(--ink-soft); margin:10px 0 0;}
 .err{font-size:13.5px; color:#fff; background:var(--rose); border-radius:8px; padding:9px 12px; margin:12px 0 0;}
 
+/* ---------- ひとこと (a word each) ---------- */
+.hk-sec{border-top:1.5px dashed var(--paper-line); margin-top:4px; padding-top:16px;}
+.hk-head{display:flex; align-items:baseline; gap:8px; margin-bottom:12px;}
+.hk-head b{font-family:"Yomogi",var(--ui); font-size:17px; font-weight:700; color:var(--ink);}
+.hk-head small{font-size:11.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint);}
+.hk{margin:0 0 15px; padding-left:13px; border-left:3px solid var(--tape,var(--rose));}
+.hk .txt{font-family:var(--hand); font-size:23px; line-height:1.2; color:var(--ink); white-space:pre-wrap;}
+.hk .by{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:5px; font-size:12px; font-weight:700; color:var(--ink-faint);}
+.hk .by .mini{appearance:none; background:none; border:0; padding:0; cursor:pointer; font:inherit; color:var(--ink-faint); text-decoration:underline; text-underline-offset:3px;}
+.hk .by .mini:hover{color:var(--ink);}
+.hk.mine{border-left-style:double; border-left-width:5px;}
+.hk-none{font-size:13.5px; color:var(--ink-faint); margin:0 0 14px;}
+
 /* ---------- full-screen photo viewer ---------- */
 .lb{
   position:fixed; inset:0; z-index:90; background:rgba(6,6,8,.97); color:var(--chalk);
@@ -347,6 +360,7 @@ var SUPA_KEY = window.SUPABASE_ANON_KEY || "";
 
 var sb=null, session=null, myProfile=null;
 var entries=[], profiles={}, signed={}, loaded=false, signing=false;
+var notesBy={}, notesOn=true;   // ひとこと, grouped by entry id
 var view="all", fPlace="all", fCat="all", fWho="all", q="";
 var catSig="";
 
@@ -518,8 +532,14 @@ function loadAll(){
   return Promise.all([
     sb.from("entries").select("*"),
     sb.from("profiles").select("*"),
-    sb.from("categories").select("*")
+    sb.from("categories").select("*"),
+    sb.from("notes").select("*")
   ]).then(function(res){
+    if(res[3] && !res[3].error){
+      notesOn=true; notesBy={};
+      (res[3].data||[]).slice().sort(function(a,b){ return String(a.created_at||"").localeCompare(String(b.created_at||"")); })
+        .forEach(function(n){ (notesBy[n.entry_id]=notesBy[n.entry_id]||[]).push(n); });
+    }else if(res[3] && res[3].error){ notesOn=false; }
     if(res[2] && !res[2].error){
       customCats = (res[2].data||[]).filter(function(c){ return c && c.name; }).map(function(c){
         return {id:c.name, emoji:c.emoji||"📌", color:c.color||"#C9A27E", custom:true};
@@ -654,8 +674,9 @@ function card(e){
   cap.style.position="relative";
   if(e.done){ var hk=hanko(); hk.style.setProperty("--ht",(((hash(e.id+"h")%13)-6)*2.2-8).toFixed(1)+"deg"); cap.appendChild(hk); }
   cap.appendChild(el("span","t",e.title||"Untitled"));
+  var nCount=(notesBy[e.id]||[]).length;
   cap.appendChild(el("span","m", e.done
-    ? catEmoji(e.category)+" "+fmt(e.done_at)
+    ? catEmoji(e.category)+" "+fmt(e.done_at)+(nCount?"  ✍ "+nCount:"")
     : catEmoji(e.category)+" "+(e.category||"")+" · "+personLabel(e.created_by)));
   b.appendChild(cap);
 
@@ -1139,6 +1160,8 @@ function openDetail(id){
       });
     }
 
+    if(e.done) sheet.appendChild(buildHitokoto(e));
+
     var status=el("p","note"); status.hidden=true; sheet.appendChild(status);
     var err=el("p","err"); err.hidden=true; sheet.appendChild(err);
     function say(t){ status.textContent=t; status.hidden=!t; }
@@ -1196,6 +1219,106 @@ function openDetail(id){
     row.appendChild(del);
     sheet.appendChild(row);
   });
+}
+
+/* ---------------- ひとこと: one word each, signed ---------------- */
+function buildHitokoto(e){
+  var sec=el("div","hk-sec");
+  var head=el("div","hk-head");
+  head.appendChild(el("b",null,"ひとこと"));
+  head.appendChild(el("small",null,"a word from each of us"));
+  sec.appendChild(head);
+
+  var listBox=el("div");
+  var errP=el("p","err"); errP.hidden=true;
+  var actionBox=el("div","acts"); actionBox.style.marginTop="0";
+  sec.appendChild(listBox); sec.appendChild(errP); sec.appendChild(actionBox);
+
+  function fail(t){ errP.textContent=t; errP.hidden=false; }
+  function mine(n){ return session && n.author===session.user.id; }
+
+  function draw(){
+    listBox.innerHTML=""; actionBox.innerHTML=""; errP.hidden=true;
+    if(!notesOn){
+      listBox.appendChild(el("p","hk-none","Notes aren't set up in the database yet."));
+      return;
+    }
+    var list=notesBy[e.id]||[];
+    if(!list.length) listBox.appendChild(el("p","hk-none","Nothing written here yet. What do you remember about it?"));
+    list.forEach(function(n){
+      var q=el("div","hk"+(mine(n)?" mine":""));
+      q.appendChild(el("div","txt",n.text||""));
+      var by=el("div","by");
+      var p=profiles[n.author];
+      var who=p ? ((p.emoji?p.emoji+" ":"")+p.name) : "someone";
+      by.appendChild(el("span",null,"— by "+who+(n.created_at?" · "+fmt(n.created_at):"")));
+      if(mine(n)){
+        var ed=el("button","mini","edit"); ed.type="button";
+        var dl=el("button","mini","delete"); dl.type="button";
+        by.appendChild(ed); by.appendChild(dl);
+        ed.addEventListener("click",function(){ compose(n); });
+        dl.addEventListener("click",function(){
+          if(!window.confirm("Delete your note?")) return;
+          sb.from("notes").delete().eq("id",n.id).then(function(r){
+            if(r.error) throw r.error;
+            return loadAll();
+          }).then(draw).catch(function(ex){ fail("Couldn't delete it: "+((ex&&ex.message)||"try again")); });
+        });
+      }
+      q.appendChild(by);
+      listBox.appendChild(q);
+    });
+    if(notesOn){
+      var add=el("button","btn","✍ Write yours"); add.type="button";
+      add.addEventListener("click",function(){ compose(null); });
+      actionBox.appendChild(add);
+    }
+  }
+
+  function compose(existing){
+    listBox.innerHTML=""; actionBox.innerHTML=""; errP.hidden=true;
+    var list=(notesBy[e.id]||[]).filter(function(n){ return !existing || n.id!==existing.id; });
+    list.forEach(function(n){
+      var q=el("div","hk"+(mine(n)?" mine":""));
+      q.appendChild(el("div","txt",n.text||""));
+      var p=profiles[n.author];
+      q.appendChild(el("div","by","— by "+(p?((p.emoji?p.emoji+" ":"")+p.name):"someone")+(n.created_at?" · "+fmt(n.created_at):"")));
+      listBox.appendChild(q);
+    });
+    var lab=el("label","f");
+    lab.appendChild(el("span",null, existing ? "Your note" : "Your ひとこと"));
+    var ta=el("textarea"); ta.id="hk-text"; ta.maxLength=2000;
+    ta.placeholder="What I keep thinking about is…";
+    ta.value=existing ? (existing.text||"") : "";
+    lab.appendChild(ta); listBox.appendChild(lab);
+    ta.focus({preventScroll:true});
+
+    var save=el("button","btn primary", existing?"Save":"Add it"); save.type="button";
+    var cancel=el("button","btn","Cancel"); cancel.type="button";
+    cancel.addEventListener("click",draw);
+    actionBox.appendChild(save); actionBox.appendChild(cancel);
+
+    save.addEventListener("click",function(){
+      var text=ta.value.trim();
+      if(!text){ fail("Write something first."); ta.focus(); return; }
+      save.disabled=true; save.textContent="Saving…"; errP.hidden=true;
+      var p = existing
+        ? sb.from("notes").update({text:text}).eq("id",existing.id)
+        : sb.from("notes").insert({entry_id:e.id, author:session.user.id, text:text});
+      p.then(function(r){
+        if(r.error) throw r.error;
+        return loadAll();
+      }).then(draw).catch(function(ex){
+        save.disabled=false; save.textContent= existing?"Save":"Add it";
+        fail(/relation|does not exist|schema cache/i.test((ex&&ex.message)||"")
+          ? "Notes aren't set up in the database yet. Run notes.sql in Supabase once."
+          : "Couldn't save it: "+((ex&&ex.message)||"try again"));
+      });
+    });
+  }
+
+  draw();
+  return sec;
 }
 
 /* ---------------- complete ---------------- */

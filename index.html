@@ -316,6 +316,7 @@ textarea{resize:vertical; min-height:80px; line-height:1.55;}
       <div class="whobar">
         <span id="me-label"></span>
         <button class="linkbtn" id="edit-me">change</button>
+      <button class="linkbtn" id="bell" hidden></button>
         <span style="flex:1"></span>
         <button class="linkbtn" id="signout">sign out</button>
       </div>
@@ -569,7 +570,12 @@ function loadAll(){
     renderMe();
     render();
     if(session && !myProfile && !modalEl.firstChild) askWhoYouAre(true);
-    else if(session && !modalEl.firstChild && !sharedChecked){ sharedChecked=true; takeSharedPhotos(); }
+    else if(session && !modalEl.firstChild && !sharedChecked){
+      sharedChecked=true;
+      openFromNotification();
+      takeSharedPhotos();
+    }
+    paintBell();
   });
 }
 
@@ -1391,6 +1397,92 @@ function openComplete(id){
       });
     });
   });
+}
+
+/* ---------------- push notifications ---------------- */
+var bellEl=document.getElementById("bell");
+
+function pushSupported(){
+  return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+}
+function standalone(){
+  return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone===true;
+}
+function urlB64(base64){
+  var pad="=".repeat((4 - base64.length % 4) % 4);
+  var raw=atob((base64+pad).replace(/-/g,"+").replace(/_/g,"/"));
+  var out=new Uint8Array(raw.length);
+  for(var i=0;i<raw.length;i++) out[i]=raw.charCodeAt(i);
+  return out;
+}
+function currentSub(){
+  if(!pushSupported()) return Promise.resolve(null);
+  return navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription(); });
+}
+function paintBell(){
+  if(!session){ bellEl.hidden=true; return; }
+  if(!pushSupported() || !window.VAPID_PUBLIC_KEY){ bellEl.hidden=true; return; }
+  bellEl.hidden=false;
+  if(Notification.permission==="denied"){
+    bellEl.textContent="🔕 notifications blocked";
+    bellEl.title="Turn them back on in your phone's settings for this app";
+    return;
+  }
+  currentSub().then(function(sub){
+    bellEl.textContent = sub ? "🔔 notifications on" : "🔕 turn on notifications";
+  });
+}
+function toggleBell(){
+  if(Notification.permission==="denied"){
+    window.alert("Your phone is blocking notifications for this app. Turn them back on in its settings, then tap again.");
+    return;
+  }
+  if(!standalone() && /iPad|iPhone|iPod/.test(navigator.userAgent)){
+    window.alert("On iPhone, add the app to your home screen first, then open it from there and try again.");
+    return;
+  }
+  bellEl.textContent="…";
+  currentSub().then(function(sub){
+    if(sub){
+      var endpoint=sub.endpoint;
+      return sub.unsubscribe().then(function(){
+        return sb.from("push_subscriptions").delete().eq("endpoint",endpoint);
+      }).then(paintBell);
+    }
+    return Notification.requestPermission().then(function(perm){
+      if(perm!=="granted"){ paintBell(); return; }
+      return navigator.serviceWorker.ready.then(function(reg){
+        return reg.pushManager.subscribe({
+          userVisibleOnly:true,
+          applicationServerKey: urlB64(window.VAPID_PUBLIC_KEY)
+        });
+      }).then(function(s){
+        var j=s.toJSON();
+        return sb.from("push_subscriptions").upsert({
+          user_id: session.user.id,
+          endpoint: j.endpoint,
+          p256dh: j.keys.p256dh,
+          auth: j.keys.auth,
+          device: (navigator.userAgent.match(/iPhone|iPad|Android|Macintosh|Windows/)||["a device"])[0]
+        },{onConflict:"endpoint"});
+      }).then(function(r){
+        if(r && r.error) window.alert("Notifications couldn't be saved: "+r.error.message);
+        paintBell();
+      });
+    });
+  }).catch(function(){
+    paintBell();
+  });
+}
+bellEl.addEventListener("click",toggleBell);
+
+/* opened from a notification: jump straight to that entry */
+function openFromNotification(){
+  var qs=new URLSearchParams(location.search);
+  var id=qs.get("entry");
+  if(!id) return;
+  history.replaceState(null,"",location.pathname);
+  if(find(id)) openDetail(id);
 }
 
 /* ---------------- photos shared from another app ---------------- */

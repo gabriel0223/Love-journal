@@ -14,6 +14,7 @@ var SHELL_FILES = [
   "./index.html",
   "./manifest.webmanifest",
   "./icon-192.png",
+  "./badge-96.png",
   "./icon-512.png",
   "./apple-touch-icon.png"
 ];
@@ -171,7 +172,7 @@ self.addEventListener("push", function(ev){
     self.registration.showNotification(title, {
       body: d.body || "",
       icon: "icon-192.png",
-      badge: "icon-192.png",
+      badge: "badge-96.png",   // silhouette only: Android tints it and ignores color
       tag: d.tag || "love-journal",
       renotify: true,
       data: { url: d.url || "./" }

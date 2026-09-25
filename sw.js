@@ -158,3 +158,40 @@ self.addEventListener("fetch", function(ev){
     return;
   }
 });
+
+
+/* ---------- push notifications ---------- */
+
+self.addEventListener("push", function(ev){
+  var d={};
+  try{ d = ev.data ? ev.data.json() : {}; }
+  catch(e){ d = {body: ev.data ? ev.data.text() : ""}; }
+  var title = d.title || "Our Love Journal";
+  ev.waitUntil(
+    self.registration.showNotification(title, {
+      body: d.body || "",
+      icon: "icon-192.png",
+      badge: "icon-192.png",
+      tag: d.tag || "love-journal",
+      renotify: true,
+      data: { url: d.url || "./" }
+    })
+  );
+});
+
+self.addEventListener("notificationclick", function(ev){
+  ev.notification.close();
+  var target = (ev.notification.data && ev.notification.data.url) || "./";
+  ev.waitUntil(
+    self.clients.matchAll({type:"window", includeUncontrolled:true}).then(function(list){
+      for(var i=0;i<list.length;i++){
+        var c=list[i];
+        if(c.url.indexOf(self.registration.scope)===0 && "focus" in c){
+          if("navigate" in c) c.navigate(target);
+          return c.focus();
+        }
+      }
+      return self.clients.openWindow(target);
+    })
+  );
+});

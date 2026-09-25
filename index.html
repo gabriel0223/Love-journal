@@ -59,7 +59,20 @@ button{font-family:inherit;}
 
 /* ---------- header ---------- */
 .route{display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700; color:var(--chalk-soft); letter-spacing:.04em;}
-.route .ln{flex:0 1 80px; border-top:2px dashed var(--page-line);}
+.route{gap:8px;}
+.route .ln{flex:1 1 auto; min-width:6px; border-top:2px dashed var(--page-line);}
+#countdown{
+  flex:none; white-space:nowrap; color:var(--gold);
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums;
+  font-size:13px; font-weight:600; letter-spacing:.01em;
+}
+#countdown.arrived{color:var(--rose);}
+.route .w{font-weight:700;}
+@media (max-width:359px){
+  .route .w{display:none;}
+  #countdown{font-size:12.5px;}
+  .tab{padding-inline:10px; font-size:13.5px; min-width:0;}
+}
 h1{font-family:var(--hand); font-weight:700; font-size:clamp(54px,14vw,86px); line-height:.9; margin:12px 0 4px; color:var(--chalk);}
 .jp-sub{font-family:"Yomogi",cursive; font-size:18px; color:var(--gold); margin:0 0 10px;}
 .lede{margin:0; color:var(--chalk-soft); max-width:46ch; font-size:14.5px;}
@@ -308,7 +321,7 @@ textarea{resize:vertical; min-height:80px; line-height:1.55;}
 <div id="app" hidden>
   <div class="wrap">
     <header>
-      <div class="route"><span>🇧🇷 Brazil</span><i class="ln"></i><span>✈</span><i class="ln"></i><span>Japan 🇯🇵</span></div>
+      <div class="route"><span>🇧🇷 <b class="w">Brazil</b></span><i class="ln"></i><span id="countdown">✈</span><i class="ln"></i><span><b class="w">Japan</b> 🇯🇵</span></div>
       <h1>Our Love Journal</h1>
       <p class="jp-sub">ふたりのアルバム</p>
       <p class="lede">Everything we still want to do together, and every one we've already done, with the photos to prove it.</p>
@@ -1399,6 +1412,55 @@ function openComplete(id){
   });
 }
 
+/* ---------------- countdown to the day we meet ---------------- */
+var cdEl=document.getElementById("countdown");
+var cdTimer=null;
+
+function two(n){ return (n<10?"0":"")+n; }
+
+/* the calendar day as written in config, not shifted into whoever's timezone */
+function meetDayLabel(){
+  var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(window.MEET_AT||""));
+  if(!m) return "";
+  var d=new Date(Date.UTC(+m[1], +m[2]-1, +m[3], 12));
+  return d.toLocaleDateString(undefined,{day:"numeric", month:"long", year:"numeric", timeZone:"UTC"});
+}
+
+function paintCountdown(){
+  var when = window.MEET_AT ? new Date(window.MEET_AT) : null;
+  if(!when || isNaN(when)){ cdEl.textContent="✈"; cdEl.className=""; return; }
+
+  var left = when.getTime() - Date.now();
+
+  if(left <= 0){
+    var since = Math.floor(-left / 86400000);
+    cdEl.className="arrived";
+    cdEl.textContent = since<1 ? "今日 ❤️" : (since+1)+"日目";
+    cdEl.title = "together since "+meetDayLabel();
+    if(cdTimer){ clearInterval(cdTimer); cdTimer=null; }
+    return;
+  }
+
+  var s=Math.floor(left/1000);
+  var d=Math.floor(s/86400); s-=d*86400;
+  var hh=Math.floor(s/3600);  s-=hh*3600;
+  var mm=Math.floor(s/60);    s-=mm*60;
+  cdEl.className="";
+  cdEl.textContent = d+"日 "+two(hh)+":"+two(mm)+":"+two(s);
+  cdEl.title = "until we meet on "+meetDayLabel();
+}
+
+function startCountdown(){
+  paintCountdown();
+  if(cdTimer) clearInterval(cdTimer);
+  cdTimer=setInterval(paintCountdown,1000);
+}
+/* no point ticking while the app is in the background */
+document.addEventListener("visibilitychange",function(){
+  if(document.hidden){ if(cdTimer){ clearInterval(cdTimer); cdTimer=null; } }
+  else startCountdown();
+});
+
 /* ---------------- push notifications ---------------- */
 var bellEl=document.getElementById("bell");
 
@@ -1603,6 +1665,7 @@ if(!window.supabase || !SUPA_URL || !SUPA_KEY || /^PASTE_/.test(SUPA_URL) || /^P
       return;
     }
     gate.hidden=true; app.hidden=false;
+    startCountdown();
     loaded=false; render();
     loadAll();
     if(!channel){

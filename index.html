@@ -1419,36 +1419,26 @@ function currentSub(){
   if(!pushSupported()) return Promise.resolve(null);
   return navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription(); });
 }
+/* the bell is only here until this phone is subscribed; after that
+   it disappears and notifications are managed from phone settings */
 function paintBell(){
-  if(!session){ bellEl.hidden=true; return; }
-  if(!pushSupported() || !window.VAPID_PUBLIC_KEY){ bellEl.hidden=true; return; }
-  bellEl.hidden=false;
-  if(Notification.permission==="denied"){
-    bellEl.textContent="🔕 notifications blocked";
-    bellEl.title="Turn them back on in your phone's settings for this app";
-    return;
-  }
+  bellEl.hidden=true;
+  if(!session || !pushSupported() || !window.VAPID_PUBLIC_KEY) return;
+  if(Notification.permission==="denied") return;
   currentSub().then(function(sub){
-    bellEl.textContent = sub ? "🔔 notifications on" : "🔕 turn on notifications";
+    if(sub) return;
+    bellEl.textContent="🔕 turn on notifications";
+    bellEl.hidden=false;
   });
 }
-function toggleBell(){
-  if(Notification.permission==="denied"){
-    window.alert("Your phone is blocking notifications for this app. Turn them back on in its settings, then tap again.");
-    return;
-  }
+function turnOnPush(){
   if(!standalone() && /iPad|iPhone|iPod/.test(navigator.userAgent)){
     window.alert("On iPhone, add the app to your home screen first, then open it from there and try again.");
     return;
   }
   bellEl.textContent="…";
   currentSub().then(function(sub){
-    if(sub){
-      var endpoint=sub.endpoint;
-      return sub.unsubscribe().then(function(){
-        return sb.from("push_subscriptions").delete().eq("endpoint",endpoint);
-      }).then(paintBell);
-    }
+    if(sub){ paintBell(); return; }
     return Notification.requestPermission().then(function(perm){
       if(perm!=="granted"){ paintBell(); return; }
       return navigator.serviceWorker.ready.then(function(reg){
@@ -1474,7 +1464,7 @@ function toggleBell(){
     paintBell();
   });
 }
-bellEl.addEventListener("click",toggleBell);
+bellEl.addEventListener("click",turnOnPush);
 
 /* opened from a notification: jump straight to that entry */
 function openFromNotification(){
